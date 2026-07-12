@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Prédire un match · World Cup Intelligence{% endblock %}
+{% block content %}
+<header class="mb-8 max-w-3xl">
+  <div class="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-blue-700"><span class="h-2 w-2 rounded-full bg-blue-500"></span>Modèle optimisé</div>
+  <h1 class="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Analyse prédictive d’un match</h1>
+  <p class="mt-3 text-base leading-7 text-slate-600">Sélectionnez une confrontation internationale. La plateforme reconstruit automatiquement la forme récente, le classement FIFA et le contexte du match.</p>
+</header>
+
+<div class="grid items-start gap-7 lg:grid-cols-[0.9fr_1.1fr]">
+  <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+    <div class="border-b border-slate-100 bg-slate-50/80 px-6 py-5"><div class="flex items-center gap-3"><span class="grid h-9 w-9 place-items-center rounded-lg bg-blue-100 text-blue-700"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" stroke-linecap="round" d="M12 6v12M6 12h12"/></svg></span><div><h2 class="font-bold text-slate-900">Nouvelle simulation</h2><p class="text-xs text-slate-500">Les statistiques sont calculées automatiquement</p></div></div></div>
+    <form method="post" class="space-y-5 p-6">{% csrf_token %}
+      {% if form.non_field_errors %}<div class="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}
+        {% if field.name == 'neutral' %}
+          <label class="flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-blue-300"><span><span class="block text-sm font-semibold text-slate-800">{{ field.label }}</span><span class="block text-xs text-slate-500">Aucune équipe ne bénéficie de son terrain habituel</span></span>{{ field }}</label>
+        {% else %}
+          <div><label for="{{ field.id_for_label }}" class="mb-2 block text-sm font-semibold text-slate-700">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="mt-1.5 text-xs font-medium text-red-600">{{ error }}</p>{% endfor %}</div>
+        {% endif %}
+      {% endfor %}
+      <button class="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-blue-200"><svg class="h-5 w-5 transition group-hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m13 2-9 12h7l-1 8 9-12h-7l1-8Z"/></svg>Lancer l’analyse</button>
+    </form>
+  </section>
+
+  <section class="min-h-[34rem] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+    <div class="border-b border-slate-100 px-6 py-5"><div class="flex items-center justify-between"><div><h2 class="font-bold text-slate-900">Résultat du modèle</h2><p class="text-xs text-slate-500">Classification et estimation de score</p></div>{% if result %}<span class="rounded-full px-3 py-1 text-xs font-bold {% if result.confidence_level == 'high' %}bg-emerald-100 text-emerald-700{% elif result.confidence_level == 'medium' %}bg-amber-100 text-amber-700{% else %}bg-slate-100 text-slate-600{% endif %}">Confiance {{ result.confidence_label|lower }}</span>{% endif %}</div></div>
+    {% if result %}
+      <div class="p-6">
+        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 px-5 py-7 text-white shadow-lg">
+          <div class="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-blue-500/20 blur-2xl"></div>
+          <p class="relative text-center text-xs font-semibold uppercase tracking-[0.22em] text-blue-200">{% if result.prediction == 'draw' %}Issue la plus probable{% else %}Pays favori{% endif %}</p>
+          <p class="relative mt-2 text-center text-3xl font-black">{{ result.predicted_winner_label }}</p>
+          <div class="relative mt-7 grid grid-cols-[1fr_auto_1fr] items-center gap-3"><div class="text-right"><p class="font-bold">{{ result.home_team_label }}</p><p class="text-xs text-slate-400">Équipe A · Home</p></div><div class="rounded-xl border border-white/10 bg-white/10 px-5 py-3 text-3xl font-black shadow-inner backdrop-blur">{{ result.predicted_home_score }}<span class="mx-2 text-blue-300">–</span>{{ result.predicted_away_score }}</div><div><p class="font-bold">{{ result.away_team_label }}</p><p class="text-xs text-slate-400">Équipe B · Away</p></div></div>
+          <p class="relative mt-5 text-center text-[11px] text-slate-400">Score probable conditionné par l’issue prédite</p>
+        </div>
+
+        <div class="mt-7 space-y-5">
+          <div><div class="mb-2 flex items-center justify-between text-sm"><span class="font-semibold text-slate-700">Victoire {{ result.home_team_label }}</span><span class="rounded-md bg-emerald-50 px-2 py-1 font-bold text-emerald-700">{% widthratio result.probabilities.home_win 1 100 %}%</span></div><div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600" style="width:{% widthratio result.probabilities.home_win 1 100 %}%"></div></div></div>
+          <div><div class="mb-2 flex items-center justify-between text-sm"><span class="font-semibold text-slate-700">Match nul</span><span class="rounded-md bg-amber-50 px-2 py-1 font-bold text-amber-700">{% widthratio result.probabilities.draw 1 100 %}%</span></div><div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-amber-300 to-amber-500" style="width:{% widthratio result.probabilities.draw 1 100 %}%"></div></div></div>
+          <div><div class="mb-2 flex items-center justify-between text-sm"><span class="font-semibold text-slate-700">Victoire {{ result.away_team_label }}</span><span class="rounded-md bg-blue-50 px-2 py-1 font-bold text-blue-700">{% widthratio result.probabilities.away_win 1 100 %}%</span></div><div class="h-2.5 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-blue-400 to-indigo-600" style="width:{% widthratio result.probabilities.away_win 1 100 %}%"></div></div></div>
+        </div>
+        <div class="mt-7 flex gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-600"><svg class="h-5 w-5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 9h.01M11 12h1v4h1m8-4a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg><span>{{ result.warning }}</span></div>
+      </div>
+    {% else %}
+      <div class="grid min-h-[28rem] place-items-center p-8 text-center"><div><span class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-blue-50 text-blue-500"><svg class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 16l4-5 4 3 4-7"/></svg></span><h3 class="mt-5 text-lg font-bold text-slate-800">Prêt pour l’analyse</h3><p class="mx-auto mt-2 max-w-xs text-sm leading-6 text-slate-500">Complétez le formulaire pour obtenir le favori, le score probable et les trois probabilités.</p></div></div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% load static tailwind_tags %}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Plateforme de prédiction des matchs internationaux par Machine Learning">
+  {% tailwind_css %}
+  <title>{% block title %}World Cup Intelligence{% endblock %}</title>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
+  <div class="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(37,99,235,0.08),_transparent_32rem)]">
+    <nav class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+      <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <a href="{% url 'predictor:predict' %}" class="flex items-center gap-3">
+          <span class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg shadow-blue-200">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8.5 9 3.5-2 3.5 2-.8 4H9.3L8.5 9Z"/><path d="m9.3 13-2.8 2m8.2-2 2.8 2M12 7V3"/></svg>
+          </span>
+          <span><span class="block text-sm font-extrabold tracking-tight">World Cup Intelligence</span><span class="block text-xs text-slate-500">Machine Learning Platform</span></span>
+        </a>
+        <div class="flex items-center rounded-xl bg-slate-100 p-1 text-sm font-medium">
+          <a href="{% url 'predictor:predict' %}" class="rounded-lg px-3 py-2 transition {% if request.resolver_match.url_name == 'predict' %}bg-white text-blue-700 shadow-sm{% else %}text-slate-600 hover:text-slate-900{% endif %}">Prédiction</a>
+          <a href="{% url 'predictor:history' %}" class="rounded-lg px-3 py-2 transition {% if request.resolver_match.url_name == 'history' %}bg-white text-blue-700 shadow-sm{% else %}text-slate-600 hover:text-slate-900{% endif %}">Historique</a>
+          <a href="{% url 'dashboard:index' %}" class="rounded-lg px-3 py-2 transition {% if request.resolver_match.namespace == 'dashboard' %}bg-white text-blue-700 shadow-sm{% else %}text-slate-600 hover:text-slate-900{% endif %}">Dashboard</a>
+        </div>
+      </div>
+    </nav>
+    <main class="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+      {% for message in messages %}<div class="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm"><svg class="mt-0.5 h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 4h.01M10.3 3.7 2.6 17A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-3l-7.7-13.3a2 2 0 0 0-3.4 0Z"/></svg><span>{{ message }}</span></div>{% endfor %}
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="border-t border-slate-200 bg-white/70"><div class="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between"><span>Projet académique de prédiction footballistique</span><span>Les résultats sont des estimations statistiques, pas des certitudes.</span></div></footer>
+  </div>
+</body>
+</html>
