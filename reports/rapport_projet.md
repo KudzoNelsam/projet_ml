@@ -13,7 +13,7 @@
 
 Ce projet cherche à prédire l'issue d'un match international de football à partir de deux sources : l'historique des matchs et le classement FIFA. Pour chaque rencontre, les données disponibles avant le match sont utilisées afin d'éviter toute fuite d'information.
 
-Le jeu final contient **30 782 matchs** et **34 variables prédictives**. Trois modèles étudiés en cours ont été comparés avec une séparation chronologique : régression logistique, arbre de décision et forêt aléatoire. La **régression logistique optimisée** a été retenue. Elle obtient une accuracy de **57,88 %**, un F1-score pondéré de **56,42 %**, un macro F1 de **51,32 %** et une log-loss de **0,8962**.
+Le jeu final contient **30 782 matchs** et **34 variables prédictives**. Trois modèles étudiés en cours ont été comparés avec une séparation chronologique : régression logistique, arbre de décision et forêt aléatoire. La **régression logistique optimisée** a été retenue. Elle obtient une accuracy de **58,32 %**, un F1-score pondéré de **57,38 %**, un macro F1 de **52,47 %** et une log-loss de **0,8880**.
 
 Deux régressions de Poisson complémentaires estiment les buts des équipes A et B. Enfin, les pipelines ont été intégrées à une application Django qui calcule automatiquement les features, affiche les probabilités et un score probable, puis sauvegarde les prédictions dans SQLite.
 
@@ -204,14 +204,16 @@ La classe des matchs nuls est minoritaire. Ce déséquilibre explique pourquoi l
 
 Le jeu candidat contient **30 782 matchs**, de janvier 1993 à juillet 2026. Il comporte 48 colonnes techniques et descriptives, dont 34 sont réellement fournies aux pipelines.
 
-Les matchs sont séparés chronologiquement :
+Les lignes dont le classement FIFA est manquant (matchs antérieurs à 1993, avant l'existence du classement) sont retirées avec `dropna()`, soit 2 251 matchs (7,3 %).
 
-- entraînement : 24 597 matchs, jusqu'au 18 novembre 2019 ;
-- test : 6 185 matchs, à partir du 19 novembre 2019.
+Les matchs restants sont séparés chronologiquement :
+
+- entraînement : 22 806 matchs, jusqu'au 12 octobre 2020 ;
+- test : 5 725 matchs, à partir du 13 octobre 2020.
 
 Aucune date n'est partagée entre les deux ensembles.
 
-Les variables numériques sont imputées par la médiane. La régression logistique utilise `StandardScaler`. Les variables catégorielles sont imputées par la modalité la plus fréquente puis encodées avec `OneHotEncoder(handle_unknown="ignore")`. Les arbres ne reçoivent pas de normalisation numérique inutile.
+Les variables catégorielles sont encodées avec `pandas.get_dummies()`. Les variables numériques sont normalisées manuellement (soustraction de la moyenne, division par l'écart-type, calculés sur l'ensemble d'entraînement uniquement) pour la régression logistique. Les arbres ne reçoivent pas de normalisation numérique inutile.
 
 ---
 
@@ -223,7 +225,7 @@ Les trois modèles imposés par le cours sont :
 2. `DecisionTreeClassifier` ;
 3. `RandomForestClassifier`.
 
-Pour l'arbre, les profondeurs 3, 5, 8, 12 et illimitée ont été comparées sur une validation chronologique interne. La profondeur 8 a été retenue.
+Pour l'arbre, les profondeurs 3, 5, 8, 12 et illimitée ont été comparées sur une validation chronologique interne. La profondeur 5 a été retenue.
 
 La régression logistique a également été réglée sur la validation interne. Le réglage final utilise `C=0.5` et un poids de 1,6 pour la classe des matchs nuls.
 
@@ -231,17 +233,17 @@ La régression logistique a également été réglée sur la validation interne.
 
 | Modèle | Accuracy | Precision pondérée | Recall pondéré | F1 pondéré | Macro F1 | Rappel des nuls | Log-loss |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Régression logistique optimisée | 57,88 % | 56,51 % | 57,88 % | 56,42 % | **51,32 %** | 26,72 % | **0,8962** |
-| Arbre de décision | 52,16 % | 56,75 % | 52,16 % | 53,69 % | 50,14 % | **37,76 %** | 1,3797 |
-| Forêt aléatoire | **58,71 %** | 54,41 % | **58,71 %** | 55,29 % | 49,30 % | 12,59 % | 0,9094 |
+| Régression logistique optimisée | 58,32 % | 56,89 % | 58,32 % | 57,38 % | **52,47 %** | 26,91 % | **0,8880** |
+| Arbre de décision | 54,53 % | 56,72 % | 54,53 % | 55,37 % | 51,38 % | **32,29 %** | 0,9403 |
+| Forêt aléatoire | **58,72 %** | 54,40 % | **58,72 %** | 55,30 % | 49,41 % | 12,33 % | 0,9077 |
 
 ### 9.2 Surapprentissage
 
 | Modèle | Macro F1 train | Macro F1 test | Diagnostic |
 |---|---:|---:|---|
-| Régression logistique | 50,62 % | 51,32 % | Pas de surapprentissage visible |
-| Arbre de décision | 51,10 % | 50,14 % | Écart faible |
-| Forêt aléatoire | 93,09 % | 49,30 % | Surapprentissage très important |
+| Régression logistique | 50,68 % | 52,47 % | Pas de surapprentissage visible |
+| Arbre de décision | 49,90 % | 51,38 % | Écart faible |
+| Forêt aléatoire | 93,02 % | 49,41 % | Surapprentissage très important |
 
 La forêt aléatoire possède la meilleure accuracy, mais elle reconnaît très mal les matchs nuls et surapprend fortement. L'arbre reconnaît davantage de nuls, mais ses probabilités sont moins fiables. La régression logistique offre le meilleur compromis entre équilibre des classes, qualité des probabilités, stabilité et interprétabilité.
 
@@ -271,8 +273,8 @@ Le classifieur prédit une issue, pas un score. Deux modèles supplémentaires `
 
 | Cible | Alpha | MAE sur le test |
 |---|---:|---:|
-| Buts équipe A | 0,01 | 1,042 but |
-| Buts équipe B | 0,10 | 0,838 but |
+| Buts équipe A | 0,01 | 1,029 but |
+| Buts équipe B | 0,10 | 0,831 but |
 
 Le score affiché est le score de Poisson le plus probable parmi ceux compatibles avec l'issue du classifieur. Cette règle évite d'afficher une victoire d'une équipe accompagnée d'un score contradictoire.
 

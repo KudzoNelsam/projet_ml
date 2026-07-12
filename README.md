@@ -34,6 +34,6 @@ Ouvrir `http://127.0.0.1:8000/`.
 
 ## Résultat principal
 
-Le modèle retenu est une régression logistique optimisée : accuracy de 57,88 %, macro F1 de 51,32 % et log-loss de 0,8962 sur un test chronologique.
+Le modèle retenu est une régression logistique optimisée : accuracy de 58,32 %, macro F1 de 52,47 % et log-loss de 0,8880 sur un test chronologique.
 
 Consulter [`reports/rapport_projet.md`](reports/rapport_projet.md) pour la méthodologie, les performances et les limites.

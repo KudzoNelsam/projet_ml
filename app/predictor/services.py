@@ -58,7 +58,7 @@ class MatchPredictionService:
         ).sort_values("rank_date")
         self.bundle = joblib.load(settings.ML_MODEL_PATH)
         self.score_bundle = joblib.load(settings.SCORE_MODEL_PATH)
-        self.pipeline = self.bundle["pipeline"]
+        self.model = self.bundle["model"]
 
     @property
     def available_teams(self):
@@ -139,17 +139,31 @@ class MatchPredictionService:
             raise PredictionInputError("Features impossibles à construire : " + ", ".join(missing_features))
         return features, home_fifa["rank_date"], away_fifa["rank_date"]
 
+    @staticmethod
+    def _encode(features, bundle):
+        """Reproduit l'encodage get_dummies + scaling manuel fait dans le notebook d'entraînement."""
+        encoded = pd.get_dummies(features, columns=bundle["onehot_features"])
+        encoded["neutral"] = encoded["neutral"].astype(int)
+        encoded = encoded.reindex(columns=bundle["encoded_columns"], fill_value=0)
+        if bundle.get("scaler_mean") is not None:
+            mean = pd.Series(bundle["scaler_mean"])
+            std = pd.Series(bundle["scaler_std"])
+            encoded[bundle["numeric_features"]] = (encoded[bundle["numeric_features"]] - mean) / std
+        return encoded
+
     def predict(self, home_team, away_team, match_date, neutral=True, tournament="FIFA World Cup"):
         features, home_rank_date, away_rank_date = self.build_features(home_team, away_team, match_date, neutral, tournament)
-        probabilities = self.pipeline.predict_proba(features)[0]
+        encoded_features = self._encode(features, self.bundle)
+        probabilities = self.model.predict_proba(encoded_features)[0]
         mapping = self.bundle["class_mapping"]
         probability_by_result = {
             mapping[int(label)]: float(probability)
-            for label, probability in zip(self.pipeline.classes_, probabilities)
+            for label, probability in zip(self.model.classes_, probabilities)
         }
-        predicted_result = mapping[int(self.pipeline.predict(features)[0])]
-        expected_home = max(0.0, float(self.score_bundle["home_pipeline"].predict(features)[0]))
-        expected_away = max(0.0, float(self.score_bundle["away_pipeline"].predict(features)[0]))
+        predicted_result = mapping[int(self.model.predict(encoded_features)[0])]
+        score_features = self._encode(features, self.score_bundle)
+        expected_home = max(0.0, float(self.score_bundle["home_model"].predict(score_features)[0]))
+        expected_away = max(0.0, float(self.score_bundle["away_model"].predict(score_features)[0]))
         possible_scores = []
         for home_goals in range(9):
             for away_goals in range(9):
